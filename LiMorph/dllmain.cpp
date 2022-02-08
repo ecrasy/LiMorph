@@ -7,12 +7,15 @@ LiMorph::Morpher morpher;
 LiMorph::Morpher* morpher_ptr;
 
 DWORD WINAPI runMorpher(LPVOID lpParam) {
+
     //ThreadSynchronizer ts = ThreadSynchronizer();
    // ts.InvokeInMainThread(run_in_main
-    uintptr_t base_address = (uintptr_t)GetModuleHandle(NULL);
-    morpher.setBaseAddress(base_address);
+
+    uintptr_t baseAddress = (uintptr_t)GetModuleHandle(NULL);
+    morpher.setBaseAddress(baseAddress);
     morpher_ptr = &morpher;
     morpher.startMorpher();
+
     return 1;
 }
 

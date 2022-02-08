@@ -1,8 +1,14 @@
-#include "pch.h"
-#include "Logging.h"
-#include <fstream>
+#include "log.h"
 
-namespace LiMorph {
+#include <fstream>
+#include <iostream>
+#include <windows.h>
+#include <debugapi.h>
+
+namespace LiMorphLoader {
+
+    const auto morphLogFilePath = "D:\\Desktop\\debugfile.txt";
+
     class CLogFileOperator
     {
     public:
@@ -10,8 +16,9 @@ namespace LiMorph {
         {
             OutputDebugStringA(msg.c_str());
             OutputDebugStringA("\n");
+            std::cout << msg << std::endl;
 
-#ifdef _DEBUG
+#ifdef _DEBUG_LOG
             if (m_morphLog.is_open())
             {
                 m_morphLog << msg;
@@ -21,10 +28,10 @@ namespace LiMorph {
 
         static CLogFileOperator& GetInstance(void)
         {
-#ifdef _DEBUG
-            static CLogFileOperator s_lfp("D:\\Desktop\\debugfile.txt");
+#ifdef _DEBUG_LOG
+            static CLogFileOperator s_lfp(morphLogFilePath);
 #else
-            static CLogFileOperator s_lfg;
+            static CLogFileOperator s_lfp;
 #endif
 
             return s_lfp;

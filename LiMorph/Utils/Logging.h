@@ -1,12 +1,11 @@
 #pragma once
 
-#include <fstream>
+#include <string>
 
 namespace LiMorph {
 
 namespace Logging {
     void Print(const std::string& msg);
-    //outfile3 << "start" << std::endl;
 }
 
 } // namespace morph

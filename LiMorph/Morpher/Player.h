@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Memory/Memory.h"
-#include "../Utils/Offsets.h"
-#include "../Utils/WoWUtils.h"
+#include "Memory/Memory.h"
+#include "Utils/Offsets.h"
+#include "Utils/WoWUtils.h"
 
 #include <vector>
 #include <unordered_map>

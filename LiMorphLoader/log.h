@@ -1,13 +1,11 @@
 #pragma once
 
-#include <Windows.h>
+#include <string>
 
-#include <cstdio>
+namespace LiMorphLoader {
 
-//=============================================================================
-// Public Interface
-//=============================================================================
-#define DBG_PRINT      printf
-#define INF_PRINT      printf
-#define WRN_PRINT      printf
-#define ERR_PRINT      printf
+    namespace Logging {
+        void Print(const std::string& msg);
+    }
+
+} // namespace LiMorphLoader

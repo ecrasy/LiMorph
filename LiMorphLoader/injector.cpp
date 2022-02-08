@@ -1,9 +1,16 @@
-
+#include <string>
 #include <iostream>
 #include <Windows.h>
 #include <TlHelp32.h>
-#include "pathcch.h"
+#include <pathcch.h>
 
+#include "log.h"
+
+namespace {
+    const auto VersionOffset = 0x2D0241C;
+    const auto BuildOffset = 0x2CF1634;
+    const char* wowProcessName = "Wow.exe";
+}
 
 DWORD GetProcId(const char* procName)
 {
@@ -57,100 +64,80 @@ uintptr_t GetModuleBaseAddress(DWORD procId, const char* modName)
 
 //7ff6e162c7ca
 
-int main()
+int main(void)
 {
+    DWORD wowProcessID = 0;
+    char morphPath[MAX_PATH] = {};
+    GetCurrentDirectory(MAX_PATH, morphPath);
+    std::string morphDllPath = std::string(morphPath) + "\\LiMorph.dll";
 
-    char szFullPath[MAX_PATH] = {};
-    GetCurrentDirectory(MAX_PATH, szFullPath);
-    std::string dll = std::string(szFullPath) + "\\LiMorph.dll";
-    //std::cout << std::string(szFullPath) + "\\LiMorph.dll" << std::endl;
-    const char* dllPath = dll.c_str();
-  //  const char* dllPath = "C:\\Users\\Linus\\Source\\Repos\\LiMorph\\x64\\Release\\LiMorph.dll";
+    LiMorphLoader::Logging::Print(morphDllPath);
+    LiMorphLoader::Logging::Print("Will inject as soon as Wow.exe starts.");
 
-     const char* process_name = "Wow.exe";
-    // const char* procName = "SmallProgram.exe";
-    DWORD process_id = 0;
-
-
-    std::cout << "Will inject as soon as Wow.exe starts." << std::endl;
-    while (!process_id)
+    while (!wowProcessID)
     {
-        process_id = GetProcId(process_name);
-      //  std::cout << "asd" << std::endl;
+        wowProcessID = GetProcId(wowProcessName);
         Sleep(30);
-
     }
 
-    uintptr_t base_address = GetModuleBaseAddress(process_id, process_name);
+    uintptr_t wowBaseAddress = GetModuleBaseAddress(wowProcessID, wowProcessName);
 
-   //ULONG_PTR ImageBase = (ULONG_PTR)GetModuleHandle("SmallProgram.exe");
-   //ImageBase = (ULONG_PTR)GetModuleHandleW(NULL);
-   //int remap_ret = RmpRemapImage(ImageBase);
-
-    uintptr_t game_version = base_address + 0x2D0241C;
-    uintptr_t game_build = base_address + 0x2CF1634;
-
-    HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, 0, process_id);
-    char version[10];
-    char build[10];
+    uintptr_t gameVersionAddr = wowBaseAddress + VersionOffset;
+    uintptr_t gameBuildAddr = wowBaseAddress + BuildOffset;
+    HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, 0, wowProcessID);
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
     if (hProc && hProc != INVALID_HANDLE_VALUE)
     {
+        char gameVersion[10] = { 0 };
+        char gameBuild[10] = { 0 };
+        ReadProcessMemory(hProc, (LPVOID)gameVersionAddr, &gameVersion, 10, 0);
+        ReadProcessMemory(hProc, (LPVOID)gameBuildAddr, &gameBuild, 10, 0);
+        std::string currentVerion = std::string(gameVersion) + "." + std::string(gameBuild);
+        std::string supportedVersion = "9.0.5.37899";
 
-        ReadProcessMemory(hProc, (LPVOID)game_version, &version, 10, 0);
-        ReadProcessMemory(hProc, (LPVOID)game_build, &build, 10, 0);
-        std::string current_verion = std::string(version) + "." + std::string(build);
-        std::string supported_version = "9.0.5.37899";
+        std::string dbgMsg = "Current WoW version: " + currentVerion;
+        LiMorphLoader::Logging::Print(dbgMsg);
+        dbgMsg = "LiMorph currently supports WoW version: " + supportedVersion;
+        LiMorphLoader::Logging::Print(dbgMsg);
 
-        std::cout << "Current WoW version: " << current_verion << std::endl;
-      //  std::cout << "LiMorph currently supports WoW version: " + supported_version << std::endl;
-
-        if (current_verion == supported_version) {
+        if (currentVerion == supportedVersion) 
+        {
             SetConsoleTextAttribute(hConsole, 10);
 
-            std::cout << "LiMorph was successfully injected." << std::endl;
+            LiMorphLoader::Logging::Print("LiMorph was successfully injected.");
 
-
-            void* loc = VirtualAllocEx(hProc, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-
-            WriteProcessMemory(hProc, loc, dllPath, strlen(dllPath) + 1, 0);
-
-            HANDLE hThread = CreateRemoteThread(hProc, 0, 0, (LPTHREAD_START_ROUTINE)LoadLibraryA, loc, 0, 0);
-      
+            void* morphDllMemoryAddr = VirtualAllocEx(hProc, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            WriteProcessMemory(hProc, morphDllMemoryAddr, morphDllPath.c_str(), morphDllPath.size() + 1, 0);
+            HANDLE hThread = CreateRemoteThread(hProc, 0, 0, (LPTHREAD_START_ROUTINE)LoadLibraryA, morphDllMemoryAddr, 0, 0);
 
             if (hThread)
             {
                 CloseHandle(hThread);
             }
-            else {
-                std::cout << "ERROR WITH REMOTE THREAD" << std::endl;
+            else 
+            {
+                LiMorphLoader::Logging::Print("ERROR With Create REMOTE THREAD");
             }
-
         }
-        else {
+        else 
+        {
             SetConsoleTextAttribute(hConsole, 12);
 
-            std::cout << "LiMorph failed to inject. Currently supports WoW version: " + supported_version << std::endl;
-
+            dbgMsg = "LiMorph failed to inject. Currently supports WoW version: " + supportedVersion;
+            LiMorphLoader::Logging::Print(dbgMsg);
         }
 
-        } else {
-            std::cout << "OPEN PROCESS ERROR" << std::endl;
-        }
-
-
-
-    if (hProc) {
-            CloseHandle(hProc);
-    } else {
-        std::cout << "ERROR WITH PROCESS" << std::endl;
+        CloseHandle(hProc);
     }
-    SetConsoleTextAttribute(hConsole, 15);
-    std::cout << "Press enter to exit window." << std::endl;
+    else 
+    {
+        LiMorphLoader::Logging::Print("OPEN WOW PROCESS ERROR");
+    }
 
+    SetConsoleTextAttribute(hConsole, 15);
+    LiMorphLoader::Logging::Print("Press enter to exit window." );
     std::getchar();
-    
-    //while (1);
+
     return 0;
 }

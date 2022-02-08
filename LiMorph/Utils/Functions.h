@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../pch.h"
 #include "Offsets.h"
-#include "../Morpher/Morpher.h"
+#include "Morpher/Morpher.h"
 
 #include <functional>
 
@@ -154,11 +153,11 @@ namespace WoWFunctions {
         return _luaToNumber(lua_state, index);
     }
 
-    inline void luaPushLString(uintptr_t lua_state, const char* str, int len) {
+    inline void luaPushLString(uintptr_t lua_state, const char* str, size_t len) {
         LuaPushLString _lua_pushlstring =
             reinterpret_cast<LuaPushLString>(morpher_ptr->getBaseAddress() + Offsets::lua_pushlstring);
 
-        _lua_pushlstring(lua_state, str, len);
+        _lua_pushlstring(lua_state, str, static_cast<int>(len));
     }
 
 } // namespace WoWFunctions
